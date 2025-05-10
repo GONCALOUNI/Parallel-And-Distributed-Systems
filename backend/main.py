@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from databases import Database
 from sqlalchemy import MetaData, Table, Column, String, create_engine
@@ -12,23 +13,24 @@ DB_FILE = DATA_DIR / "db.sqlite"
 DATABASE_URL = f"sqlite:///{DB_FILE}"
 
 metadata = MetaData()
-kv = Table("kv", metadata,
+kv = Table(
+    "kv", metadata,
     Column("key", String, primary_key=True),
     Column("value", String, nullable=False),
 )
+
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 metadata.create_all(engine)
+
 db = Database(DATABASE_URL)
 
-app = FastAPI(title="KVerse: A KV Store")
-
-@app.on_event("startup")
-async def connect_db():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await db.connect()
-
-@app.on_event("shutdown")
-async def disconnect_db():
+    yield
     await db.disconnect()
+
+app = FastAPI(title="KVerse", lifespan=lifespan)
 
 @app.get("/health")
 async def health():

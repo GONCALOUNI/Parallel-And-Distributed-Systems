@@ -1,6 +1,6 @@
 # KVerse
 
-**KVerse** é uma solução distribuída leve para armazenamento key-value, desenvolvida com FastAPI, SQLite e Docker Compose. Proporciona uma API REST simples para armazenar, recuperar e eliminar pares chave-valor arbitrários, com uma configuração mínima e uma ênfase na facilidade de utilização.
+O **KVerse** é uma solução distribuída leve para armazenamento key-value, desenvolvida com FastAPI, SQLite e Docker Compose. Proporciona uma API REST simples para armazenar, recuperar e eliminar pares chave-valor arbitrários, com uma configuração mínima e uma ênfase na facilidade de utilização.
 
 ---
 
@@ -136,7 +136,7 @@ curl -X DELETE http://localhost:8000/?key=foo
 A partir da raiz do projeto ou dentro de `backend/`:
 
 ```bash
-# Se estiver dentro de backend:
+# Se estiver dentro do backend:
 cd backend
 python -m pytest -q
 ```
