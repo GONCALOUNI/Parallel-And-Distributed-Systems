@@ -19,7 +19,7 @@
 
 <script>
 export default {
-  name: 'App'
+  name: 'KVerseApp'
 }
 </script>
 
