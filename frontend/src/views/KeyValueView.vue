@@ -1,102 +1,102 @@
 <template>
-    <div class="p-6 space-y-4">
-      <h1 class="text-2xl font-semibold">Gestor de Key-Value</h1>
-  
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block mb-1 font-medium">Chave</label>
-          <input
-            v-model="key"
-            type="text"
-            placeholder="Insira a chave"
-            class="w-full border rounded p-2"
-          />
+  <div class="d-flex flex-column min-vh-100">
+    <!-- Navbar no topo -->
+    <Navbar />
+
+    <!-- Conteúdo principal -->
+    <main class="container flex-grow-1 py-5">
+      <div class="p-4 bg-white rounded-3">
+        <h2 class="mb-4">Gestor de Key-Value</h2>
+
+        <form @submit.prevent="handlePut" class="row g-3 mb-3">
+          <div class="col-md-5">
+            <label for="inputKey" class="form-label">Chave</label>
+            <input
+              v-model="key"
+              id="inputKey"
+              type="text"
+              class="form-control"
+              placeholder="Insira a chave"
+            />
+          </div>
+          <div class="col-md-5">
+            <label for="inputValue" class="form-label">Valor</label>
+            <input
+              v-model="value"
+              id="inputValue"
+              type="text"
+              class="form-control"
+              placeholder="Insira o valor"
+            />
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-success me-2">Guardar</button>
+            <button @click.prevent="handleGet" type="button" class="btn btn-info me-2">
+              Obter
+            </button>
+            <button @click.prevent="handleDelete" type="button" class="btn btn-danger">
+              Eliminar
+            </button>
+          </div>
+        </form>
+
+        <div v-if="result" class="alert alert-secondary" role="alert">
+          <h5 class="alert-heading">Resultado</h5>
+          <pre class="mb-0">{{ result }}</pre>
         </div>
-        <div>
-          <label class="block mb-1 font-medium">Valor</label>
-          <input
-            v-model="value"
-            type="text"
-            placeholder="Insira o valor"
-            class="w-full border rounded p-2"
-          />
-        </div>
       </div>
-  
-      <div class="space-x-2">
-        <button
-          @click="handlePut"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        >
-          Guardar
-        </button>
-        <button
-          @click="handleGet"
-          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-        >
-          Obter
-        </button>
-        <button
-          @click="handleDelete"
-          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-        >
-          Eliminar
-        </button>
-      </div>
-  
-      <div v-if="result" class="mt-4 p-4 bg-gray-100 rounded">
-        <h2 class="font-medium mb-2">Resultado</h2>
-        <pre class="whitespace-pre-wrap">{{ result }}</pre>
-      </div>
-    </div>
-  </template>
-  
-  <script>
-  import axios from 'axios'
-  
-  export default {
-    name: 'KeyValueView',
-    data() {
-      return {
-        key: '',
-        value: '',
-        result: null
-      }
-    },
-    methods: {
-      async handlePut() {
-        try {
-          const res = await axios.put('http://localhost:8000/', {
-            data: { key: this.key, value: this.value }
-          })
-          this.result = res.data
-        } catch (err) {
-          this.result = err.response?.data || err.message
-        }
-      },
-      async handleGet() {
-        try {
-          const res = await axios.get('http://localhost:8000/', {
-            params: { key: this.key }
-          })
-          this.result = res.data
-        } catch (err) {
-          this.result = err.response?.data || err.message
-        }
-      },
-      async handleDelete() {
-        try {
-          const res = await axios.delete('http://localhost:8000/', {
-            params: { key: this.key }
-          })
-          this.result = res.data
-        } catch (err) {
-          this.result = err.response?.data || err.message
-        }
-      }
-    }
+    </main>
+    
+    <Footer />
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import axios from 'axios'
+import Navbar from '../components/Navbar.vue'
+import Footer from '../components/Footer.vue'
+
+const key = ref('')
+const value = ref('')
+const result = ref(null)
+
+async function handlePut() {
+  try {
+    const res = await axios.put('http://localhost:8000/', {
+      data: { key: key.value, value: value.value }
+    })
+    result.value = JSON.stringify(res.data, null, 2)
+  } catch (err) {
+    result.value = err.response?.data || err.message
   }
-  </script>
-  
-  <style scoped>
-  </style>  
+}
+
+async function handleGet() {
+  try {
+    const res = await axios.get('http://localhost:8000/', {
+      params: { key: key.value }
+    })
+    result.value = JSON.stringify(res.data, null, 2)
+  } catch (err) {
+    result.value = err.response?.data || err.message
+  }
+}
+
+async function handleDelete() {
+  try {
+    const res = await axios.delete('http://localhost:8000/', {
+      params: { key: key.value }
+    })
+    result.value = JSON.stringify(res.data, null, 2)
+  } catch (err) {
+    result.value = err.response?.data || err.message
+  }
+}
+</script>
+
+<style scoped>
+main {
+  background: #f8f9fa;
+}
+</style>
