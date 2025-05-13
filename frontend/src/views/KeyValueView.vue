@@ -1,11 +1,11 @@
 <template>
   <div class="d-flex flex-column min-vh-100">
-    <!-- Navbar no topo -->
     <Navbar />
 
-    <!-- Conteúdo principal -->
     <main class="container flex-grow-1 py-5">
-      <div class="p-4 bg-white rounded-3">
+      <div
+        class="p-4 rounded-3 bg-light dark-bg-secondary text-dark text-white-50"
+      >
         <h2 class="mb-4">Gestor de Key-Value</h2>
 
         <form @submit.prevent="handlePut" class="row g-3 mb-3">
@@ -46,7 +46,7 @@
         </div>
       </div>
     </main>
-    
+
     <Footer />
   </div>
 </template>
@@ -95,8 +95,13 @@ async function handleDelete() {
 }
 </script>
 
-<style scoped>
-main {
-  background: #f8f9fa;
+<style>
+.bg-light {
+  background-color: #ffffff !important;
+}
+
+html.dark .dark-bg-secondary {
+  background-color: #2c2c2c !important;
+  color: #e1e1e1 !important;
 }
 </style>
