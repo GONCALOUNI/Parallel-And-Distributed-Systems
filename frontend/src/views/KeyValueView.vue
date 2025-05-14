@@ -10,9 +10,10 @@
         <GetForm @submit="handleGet" class="mb-5" />
         <DeleteForm @submit="handleDelete" class="mb-4" />
 
-        <div v-if="result" class="alert alert-secondary mt-4" role="alert">
+        <!-- Caixa de resultado única sem pre-formatação -->
+        <div v-if="alertMessage" :class="['alert', alertClass, 'mt-4']" role="alert">
           <h5 class="alert-heading">Resultado</h5>
-          <pre class="mb-0">{{ result }}</pre>
+          <p class="mb-0">{{ alertMessage }}</p>
         </div>
       </div>
     </main>
@@ -22,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import axios from 'axios'
 import Navbar from '../components/Navbar.vue'
 import Footer from '../components/Footer.vue'
@@ -30,38 +31,45 @@ import PutForm from '../components/PutForm.vue'
 import GetForm from '../components/GetForm.vue'
 import DeleteForm from '../components/DeleteForm.vue'
 
-const result = ref(null)
+const alertMessage = ref('')
+const alertType = ref('')
+
+const alertClass = computed(() => alertType.value === 'success' ? 'alert-success' : 'alert-danger')
 
 async function handlePut({ key, value }) {
   try {
-    const res = await axios.put('http://localhost:8000/', {
-      data: { key, value }
-    })
-    result.value = JSON.stringify(res.data, null, 2)
+    await axios.put('http://localhost:8000/', { data: { key, value } })
+    alertType.value = 'success'
+    alertMessage.value = `Sucesso! Guardada a key "${key}" com valor "${value}".`
   } catch (err) {
-    result.value = err.response?.data || err.message
+    alertType.value = 'danger'
+    alertMessage.value = `Erro: ${err.response?.data?.detail || err.message}`
   }
 }
 
 async function handleGet(key) {
   try {
-    const res = await axios.get('http://localhost:8000/', {
-      params: { key }
-    })
-    result.value = JSON.stringify(res.data, null, 2)
+    const res = await axios.get('http://localhost:8000/', { params: { key } })
+    const val = res.data?.data?.value ?? res.data
+    alertType.value = 'success'
+    alertMessage.value = `Sucesso! Obtida a key "${key}" com valor "${val}".`
   } catch (err) {
-    result.value = err.response?.data || err.message
+    alertType.value = 'danger'
+    alertMessage.value = `Erro: ${err.response?.data?.detail || err.message}`
   }
 }
 
 async function handleDelete(key) {
   try {
-    const res = await axios.delete('http://localhost:8000/', {
-      params: { key }
-    })
-    result.value = JSON.stringify(res.data, null, 2)
+    const res = await axios.delete('http://localhost:8000/', { params: { key } })
+    const val = res.data?.data?.value
+    alertType.value = 'success'
+    alertMessage.value = val
+      ? `Sucesso! Removida a key "${key}" com valor "${val}".`
+      : `Sucesso! Removida a key "${key}".`
   } catch (err) {
-    result.value = err.response?.data || err.message
+    alertType.value = 'danger'
+    alertMessage.value = `Erro: ${err.response?.data?.detail || err.message}`
   }
 }
 </script>

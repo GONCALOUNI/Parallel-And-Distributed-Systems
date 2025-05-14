@@ -27,7 +27,7 @@
             <router-link class="nav-link text-white" to="/store">Store</router-link>
           </li>
           <li class="nav-item">
-            <router-link class="nav-link text-white" to="/database">View DB</router-link>
+            <router-link class="nav-link text-white" to="/database">Ver BD</router-link>
           </li>
         </ul>
 
