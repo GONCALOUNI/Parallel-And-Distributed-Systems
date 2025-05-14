@@ -95,9 +95,25 @@ onMounted(() => {
 
 <style scoped>
 .navbar-nav .nav-link {
-  transition: color 0.3s;
+  transition: color 0.3s, transform 0.2s ease, box-shadow 0.2s ease;
 }
 .navbar-nav .nav-link:hover {
   color: #ffe5d5;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+}
+
+.navbar-brand {
+  transition: transform 0.2s ease;
+}
+.navbar-brand:hover {
+  transform: scale(1.05);
+}
+
+.navbar-toggler {
+  transition: transform 0.2s ease;
+}
+.navbar-toggler:hover {
+  transform: scale(1.1);
 }
 </style>

@@ -24,6 +24,17 @@ metadata.create_all(engine)
 
 db = Database(DATABASE_URL)
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="KVerse", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["localhost"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.connect()
