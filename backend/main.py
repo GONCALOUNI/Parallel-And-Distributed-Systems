@@ -83,10 +83,28 @@ async def put_item(item: KVItem):
 async def homepage():
     return HTMLResponse("""
       <!doctype html>
-      <html><head><title>KVerse</title></head><body style="font-family:sans-serif; text-align:center; margin:2rem">
-        <h1>Welcome to KVerse</h1>
-        <p><a href="/docs">API Documentation (Swagger UI)</a></p>
-      </body></html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>KVerse</title>
+          <style>
+            body { font-family: sans-serif; text-align: center; margin: 2rem; }
+            ul { list-style: none; padding: 0; }
+            li { margin: .5rem 0; }
+            a { text-decoration: none; color: #007BFF; }
+            a:hover { text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <h1>KVerse Backend Manager</h1>
+          <ul>
+            <li><a href="/docs">Swagger UI</a></li>
+            <li><a href="/redoc">ReDoc</a></li>
+            <li><a href="/openapi.json">OpenAPI JSON</a></li>
+            <li><a href="/health">Health Check</a></li>
+          </ul>
+        </body>
+      </html>
     """)
 
 @app.get("/", response_model=GetResponse, tags=["kv"])
