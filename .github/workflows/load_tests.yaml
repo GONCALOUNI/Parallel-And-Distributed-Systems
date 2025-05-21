@@ -1,0 +1,32 @@
+name: Load Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  loadtests:
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Locust
+        run: pip install locust
+
+      - name: Run headless load tests
+        run: |
+          cd backend/tests/load
+          chmod +x run_headless.sh
+          ./run_headless.sh
+
+      - name: Upload load-test reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: locust-reports
+          path: backend/tests/load/loadtest-report_*.csv
