@@ -8,6 +8,7 @@ import redis.asyncio as aioredis
 from databases import Database
 from sqlalchemy import MetaData, Table, Column, String, create_engine
 from pydantic import BaseModel
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
@@ -77,6 +78,16 @@ async def put_item(item: KVItem):
     query = kv.insert().values(key=item.key, value=item.value).prefix_with("OR REPLACE")
     await db.execute(query)
     return {"status": "ok"}
+
+@app.get("/", include_in_schema=False)
+async def homepage():
+    return HTMLResponse("""
+      <!doctype html>
+      <html><head><title>KVerse</title></head><body style="font-family:sans-serif; text-align:center; margin:2rem">
+        <h1>Welcome to KVerse</h1>
+        <p><a href="/docs">API Documentation (Swagger UI)</a></p>
+      </body></html>
+    """)
 
 @app.get("/", response_model=GetResponse, tags=["kv"])
 async def get_item(key: str):
