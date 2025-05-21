@@ -11,6 +11,7 @@ O **KVerse** é uma solução distribuída leve para armazenamento key-value, de
 * [Pré-requisitos](#pré-requisitos)
 * [Estrutura do Projeto](#estrutura-do-projeto)
 * [Instalação](#instalação)
+* [Setup venv do Backend](#venv-setup-do-backend)
 * [Execução da Aplicação](#execução-da-aplicação)
 * [Documentação da API](#documentação-da-api)
 * [Exemplos de Utilização](#exemplos-de-utilização)
@@ -95,6 +96,17 @@ KVerse/
    ```
 
 Isto irá construir e iniciar o serviço da API na porta **8000**, persistindo os dados em `./data/db.sqlite`.
+
+---
+
+## Setup venv do backend
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 ---
 

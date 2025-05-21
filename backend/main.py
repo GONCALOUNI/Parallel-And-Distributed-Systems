@@ -72,7 +72,7 @@ app.add_middleware(
 async def health():
     return {"status": "ok"}
 
-@app.put("/", response_model=StatusResponse, tags=["kv"])
+@app.put("/kv", response_model=StatusResponse, tags=["kv"])
 async def put_item(item: KVItem):
     await app.state.redis.set(item.key, item.value)
     query = kv.insert().values(key=item.key, value=item.value).prefix_with("OR REPLACE")
@@ -96,7 +96,7 @@ async def homepage():
           </style>
         </head>
         <body>
-          <h1>KVerse Backend Manager</h1>
+          <h1>Gestor de backend KVerse</h1>
           <ul>
             <li><a href="/docs">Swagger UI</a></li>
             <li><a href="/redoc">ReDoc</a></li>
@@ -107,7 +107,7 @@ async def homepage():
       </html>
     """)
 
-@app.get("/", response_model=GetResponse, tags=["kv"])
+@app.get("/kv", response_model=GetResponse, tags=["kv"])
 async def get_item(key: str):
     val = await app.state.redis.get(key)
     if val is not None:
@@ -118,7 +118,7 @@ async def get_item(key: str):
     await app.state.redis.set(key, row["value"])
     return {"data": {"value": row["value"]}}
 
-@app.delete("/", response_model=DeleteResponse, tags=["kv"])
+@app.delete("/kv", response_model=DeleteResponse, tags=["kv"])
 async def delete_item(key: str):
     deleted_redis = await app.state.redis.delete(key)
     result = await db.execute(kv.delete().where(kv.c.key == key))

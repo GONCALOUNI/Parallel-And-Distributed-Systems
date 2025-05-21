@@ -1,3 +1,3 @@
 @echo off
-docker-compose up --build
+sudo docker-compose up --build -d
 pause
