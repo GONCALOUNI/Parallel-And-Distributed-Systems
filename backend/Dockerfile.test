@@ -1,0 +1,6 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir pytest locust
+COPY . .
+CMD ["pytest", "--maxfail=1", "--disable-warnings", "-q"]
