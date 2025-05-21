@@ -30,3 +30,59 @@ jobs:
           python-version: '3.x'
 
       - name: Install dependencies
+        run: |
+          cd backend
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint with flake8
+        run: |
+          cd backend
+          pip install flake8
+          flake8 .
+
+      - name: Run pytest
+        run: |
+          cd backend
+          pytest --maxfail=1 --disable-warnings -q
+
+  frontend:
+    name: Frontend Build & Test
+    needs: backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Lint with ESLint
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run unit tests
+        run: |
+          cd frontend
+          npm run test:coverage
+
+      - name: Build
+        run: |
+          cd frontend
+          npm run build
