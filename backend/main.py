@@ -72,6 +72,11 @@ app.add_middleware(
 async def health():
     return {"status": "ok"}
 
+@app.get("/stats", tags=["stats"])
+async def stats():
+    count = await db.fetch_val("SELECT COUNT(*) FROM kv")
+    return {"items": count}
+
 @app.put("/kv", response_model=StatusResponse, tags=["kv"])
 async def put_item(item: KVItem):
     await app.state.redis.set(item.key, item.value)
