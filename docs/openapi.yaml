@@ -1,0 +1,175 @@
+openapi: 3.1.0
+info:
+  title: KVerse KV Store API
+  description: "API para gerir pares key\u2013value (CRUD simples + health-check)"
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      tags:
+      - health
+      summary: Health
+      description: "Verifica se o servi\xE7o est\xE1 a funcionar."
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+  /:
+    put:
+      tags:
+      - kv
+      summary: Put Item
+      description: "Insere ou atualiza um par key\u2013value."
+      operationId: put_item__put
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KVItem'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - kv
+      summary: Get Item
+      description: "Obt\xE9m o valor associado a uma key."
+      operationId: get_item__get
+      parameters:
+      - name: key
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - kv
+      summary: Delete Item
+      description: Remove uma key do armazenamento.
+      operationId: delete_item__delete
+      parameters:
+      - name: key
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    DeleteResponse:
+      properties:
+        key:
+          type: string
+          title: Key
+        deleted:
+          type: boolean
+          title: Deleted
+      type: object
+      required:
+      - key
+      - deleted
+      title: DeleteResponse
+    GetResponse:
+      properties:
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+      type: object
+      required:
+      - data
+      title: GetResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    KVItem:
+      properties:
+        key:
+          type: string
+          title: Key
+        value:
+          type: string
+          title: Value
+      type: object
+      required:
+      - key
+      - value
+      title: KVItem
+    StatusResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+      type: object
+      required:
+      - status
+      title: StatusResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
