@@ -1,0 +1,34 @@
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+comment:
+  layout: "header, diff, footer"
+  behavior: default
+
+ignore:
+  - "frontend/node_modules/*"
+  - "backend/.venv/*"
+  - "__pycache__/*"
+  - "*.pyc"
+
+flags:
+  backend:
+    paths:
+      - backend/
+  frontend:
+    paths:
+      - frontend/
+
+thresholds:
+  patch: 80
+  project: 70
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no

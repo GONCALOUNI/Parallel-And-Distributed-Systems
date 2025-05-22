@@ -51,8 +51,7 @@ jobs:
 
       - name: Generate OpenAPI YAML
         run: |
-          cd backend
-          python scripts/gen_openapi.py
+          python backend/scripts/gen_openapi.py
 
       - name: Upload OpenAPI YAML
         uses: actions/upload-artifact@v3
