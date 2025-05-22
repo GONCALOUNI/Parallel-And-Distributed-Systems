@@ -6,3 +6,4 @@ pytest
 pyyaml
 redis>=6.1.0,<7.0.0
 locust
+httpx

@@ -38,7 +38,7 @@ const alertClass = computed(() => alertType.value === 'success' ? 'alert-success
 
 async function handlePut({ key, value }) {
   try {
-    await axios.put('http://localhost:8000/', { data: { key, value } })
+    await axios.put('http://localhost:8000/kv', { data: { key, value } })
     alertType.value = 'success'
     alertMessage.value = `Sucesso! Guardada a key "${key}" com valor "${value}".`
   } catch (err) {
@@ -49,7 +49,7 @@ async function handlePut({ key, value }) {
 
 async function handleGet(key) {
   try {
-    const res = await axios.get('http://localhost:8000/', { params: { key } })
+    const res = await axios.get('http://localhost:8000/kv', { params: { key } })
     const val = res.data?.data?.value ?? res.data
     alertType.value = 'success'
     alertMessage.value = `Sucesso! Obtida a key "${key}" com valor "${val}".`
@@ -61,7 +61,7 @@ async function handleGet(key) {
 
 async function handleDelete(key) {
   try {
-    const res = await axios.delete('http://localhost:8000/', { params: { key } })
+    const res = await axios.delete('http://localhost:8000/kv', { params: { key } })
     const val = res.data?.data?.value
     alertType.value = 'success'
     alertMessage.value = val
