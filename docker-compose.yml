@@ -76,8 +76,18 @@ services:
     image: nginx/nginx-prometheus-exporter:0.10.0
     ports:
       - "9113:9113"
+    command:
+      - "-nginx.scrape-uri=http://nginx:80/nginx_status"
+      - "-web.listen-address=:9113"
+      - "-web.telemetry-path=/metrics"
     depends_on:
-      - nginx
+      nginx:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL","curl -sf http://localhost:9113/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   prometheus:
     image: prom/prometheus:latest
