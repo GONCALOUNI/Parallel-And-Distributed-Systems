@@ -27,7 +27,14 @@
             <router-link class="nav-link text-white" to="/store">Store</router-link>
           </li>
           <li class="nav-item">
-            <router-link class="nav-link text-white" to="/database">Ver BD</router-link>
+            <a
+              class="nav-link text-white"
+              href="http://localhost:5051"
+              target="_blank"
+              rel="noopener"
+            >
+              Ver BD
+            </a>
           </li>
         </ul>
 

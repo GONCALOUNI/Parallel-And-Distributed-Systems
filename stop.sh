@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -x
 
-echo "→ Stopping and removing all containers, networks, volumes…"
-docker compose down
+# 1. Usa o contexto do Docker Desktop
+docker context use desktop-linux >/dev/null
 
-echo "All services stopped."
+# 2. Vai para a raiz do projecto
+cd "$(dirname "$0")"
+
+# 3. Desliga tudo
+docker compose down --remove-orphans --volumes

@@ -5,8 +5,15 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: appdb
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - PGPASSWORD=$$POSTGRES_PASSWORD pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h 127.0.0.1
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -15,7 +22,7 @@ services:
   redis:
     image: redis:7
     ports:
-      - "6379:6379"
+      - "6380:6379"
     networks:
       - appnet
     healthcheck:
@@ -28,21 +35,36 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
-    ports:
-      - "8000:8000"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8002:8000"
     environment:
       DATABASE_URL: postgresql://user:password@postgres:5432/appdb
       REDIS_URL: "redis://redis:6379/0"
     networks:
-      - appnet
+      appnet:
+        aliases:
+          - api
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 5s
       timeout: 2s
       retries: 5
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.45.0
+    command: ["redis_exporter", "--redis.addr", "redis://redis:6379"]
+    ports:
+      - "9122:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - appnet
 
   frontend:
     build:
@@ -51,10 +73,10 @@ services:
     volumes:
       - ./frontend:/app
     ports:
-      - "5173:5173"
+      - "5176:5173"
     command: npm run dev -- --host 0.0.0.0
     environment:
-      - VITE_API_URL=http://api:8000
+      - VITE_API_URL=http://localhost:8002
     depends_on:
       - backend
     user: node
@@ -64,7 +86,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "80:80"
+      - "8082:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -76,17 +98,6 @@ services:
     networks:
       - appnet
 
-  redis_exporter:
-    image: oliver006/redis_exporter:v1.45.0
-    command: ["redis_exporter", "--redis.addr", "redis://redis:6379"]
-    ports:
-      - "9121:9121"
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - appnet
-
   nginx_exporter:
     image: nginx/nginx-prometheus-exporter:0.10.0
     command: -nginx.scrape-uri http://nginx/stub_status
@@ -94,12 +105,9 @@ services:
       nginx:
         condition: service_healthy
     ports:
-      - "9113:9113"
+      - "9114:9113"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9113/metrics || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      disable: true
     networks:
       - appnet
 
@@ -108,19 +116,23 @@ services:
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
-      - "9090:9090"
+      - "9092:9090"
     depends_on:
       - backend
       - nginx_exporter
+    healthcheck:
+      disable: true
 
   grafana:
     image: grafana/grafana:latest
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=secret
     ports:
-      - "3000:3000"
+      - "3002:3000"
     depends_on:
       - prometheus
+    healthcheck:
+      disable: true
 
   k6:
     image: grafana/k6:latest
@@ -143,7 +155,7 @@ services:
       PGADMIN_DEFAULT_EMAIL:  admin@localhost.localdomain
       PGADMIN_DEFAULT_PASSWORD: secret
     ports:
-      - "5050:80"
+      - "5051:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
       - ./backend/pgadmin-config/servers.json:/pgadmin4/servers.json:ro
