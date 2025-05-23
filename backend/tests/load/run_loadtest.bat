@@ -7,6 +7,11 @@ SET "OUT_FILE=k6-results.json"
 SET "SCRIPT=/tests/loadtest.js"
 SET "RESULT=%OUT_DIR%%OUT_FILE%"
 
+IF EXIST "%RESULT%" (
+  echo → removing stale file %OUT_FILE%
+  DEL "%RESULT%"
+)
+
 echo Running load test against %BASE_URL%…
 
 where docker >nul 2>&1
