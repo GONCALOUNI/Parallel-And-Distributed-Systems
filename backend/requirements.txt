@@ -1,9 +1,10 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-databases[sqlite]
+databases
 pytest
 pyyaml
 redis>=6.1.0,<7.0.0
-locust
 httpx
+asyncpg
+psycopg2-binary

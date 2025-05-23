@@ -1,28 +1,43 @@
 services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - appnet
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - appnet
+
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
-    volumes:
-      - ./backend:/app
-      - ./backend/data:/app/data
-    command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    expose:
-      - "8000"            # makes port 8000 available to other services, but not on the host
-    depends_on:
-      - redis
-    deploy:
-      replicas: 3
-
-  redis:
-    image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/appdb
+      REDIS_URL: "redis://redis:6379/0"
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
 
   frontend:
     build:
@@ -39,21 +54,6 @@ services:
       - api
     user: node
 
-  locust:
-    image: python:3.11-slim
-    working_dir: /app
-    volumes:
-      - ./backend:/app
-    command: >
-      sh -c "pip install --no-cache-dir locust && \
-             locust -f tests/load/locustfile.py \
-             --host http://api:8000 \
-             --web-host 0.0.0.0"
-    ports:
-      - "8089:8089"
-    depends_on:
-      - api
-
   nginx:
     image: nginx:alpine
     volumes:
@@ -61,8 +61,15 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - api
-      - frontend
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - appnet
 
   redis_exporter:
     image: oliver006/redis_exporter:v1.45.0
@@ -74,20 +81,19 @@ services:
 
   nginx_exporter:
     image: nginx/nginx-prometheus-exporter:0.10.0
-    ports:
-      - "9113:9113"
-    command:
-      - "-nginx.scrape-uri=http://nginx:80/nginx_status"
-      - "-web.listen-address=:9113"
-      - "-web.telemetry-path=/metrics"
+    command: -nginx.scrape-uri http://nginx/stub_status
     depends_on:
       nginx:
-        condition: service_started
+        condition: service_healthy
+    ports:
+      - "9113:9113"
     healthcheck:
-      test: ["CMD-SHELL","curl -sf http://localhost:9113/metrics"]
+      test: ["CMD-SHELL", "curl -f http://localhost:9113/metrics || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - appnet
 
   prometheus:
     image: prom/prometheus:latest
@@ -96,7 +102,7 @@ services:
     ports:
       - "9090:9090"
     depends_on:
-      - redis_exporter
+      - api
       - nginx_exporter
 
   grafana:
@@ -107,3 +113,23 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+
+  k6:
+    image: grafana/k6:latest
+    working_dir: /tests
+    volumes:
+      - ./backend/tests/load:/tests
+    entrypoint: ["k6","run","--vus","100","--duration","5m","/tests/loadtest.js"]
+    environment:
+      BASE_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - appnet
+
+networks:
+  appnet:
+
+volumes:
+  postgres_data:

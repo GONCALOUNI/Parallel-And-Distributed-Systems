@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -7,19 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import redis.asyncio as aioredis
 from databases import Database
 from sqlalchemy import MetaData, Table, Column, String, create_engine
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from pydantic import BaseModel
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 
-BASE_DIR = Path(__file__).parent
-DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
-DB_FILE = DATA_DIR / "db.sqlite"
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_FILE}"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@postgres:5432/appdb")
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+engine = create_engine(DATABASE_URL)
 metadata = MetaData()
 kv = Table(
     "kv", metadata,
@@ -27,7 +20,7 @@ kv = Table(
     Column("value", String, nullable=False),
 )
 metadata.create_all(engine)
-db = Database(SQLALCHEMY_DATABASE_URL)
+db = Database(DATABASE_URL)
 
 class KVItem(BaseModel):
     key: str
@@ -49,6 +42,7 @@ async def lifespan(app: FastAPI):
     app.state.redis = aioredis.from_url(
         "redis://redis:6379/0", decode_responses=True
     )
+    app.state.db = db
     yield
     await db.disconnect()
     await app.state.redis.close()
@@ -70,6 +64,18 @@ app.add_middleware(
 
 @app.get("/health", response_model=StatusResponse, tags=["health"])
 async def health():
+    try:
+        await db.execute("SELECT 1")
+    except Exception:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    try:
+        pong = await app.state.redis.ping()
+        if pong is False:
+            raise Exception("no pong")
+    except Exception:
+        raise HTTPException(status_code=503, detail="Redis unavailable")
+
     return {"status": "ok"}
 
 @app.get("/stats", tags=["stats"])
@@ -80,9 +86,38 @@ async def stats():
 @app.put("/kv", response_model=StatusResponse, tags=["kv"])
 async def put_item(item: KVItem):
     await app.state.redis.set(item.key, item.value)
-    query = kv.insert().values(key=item.key, value=item.value).prefix_with("OR REPLACE")
-    await db.execute(query)
+
+    stmt = pg_insert(kv).values(
+        key=item.key,
+        value=item.value
+    ).on_conflict_do_update(
+        index_elements=["key"],
+        set_={"value": item.value}
+    )
+
+    await db.execute(stmt)
     return {"status": "ok"}
+
+@app.get("/kv", response_model=GetResponse, tags=["kv"])
+async def get_item(key: str):
+    val = await app.state.redis.get(key)
+    if val is not None:
+        return {"data": {"value": val}}
+    row = await db.fetch_one(kv.select().where(kv.c.key == key))
+    if not row:
+        raise HTTPException(status_code=404, detail="Chave não encontrada")
+    await app.state.redis.set(key, row["value"])
+    return {"data": {"value": row["value"]}}
+
+@app.delete("/kv", response_model=DeleteResponse, tags=["kv"])
+async def delete_item(key: str):
+    deleted_redis = await app.state.redis.delete(key)
+    result = await db.execute(kv.delete().where(kv.c.key == key))
+    deleted_sql = bool(result)
+    return {
+        "key": key,
+        "deleted": bool(deleted_redis or deleted_sql)
+    }
 
 @app.get("/", include_in_schema=False)
 async def homepage():
@@ -111,24 +146,3 @@ async def homepage():
         </body>
       </html>
     """)
-
-@app.get("/kv", response_model=GetResponse, tags=["kv"])
-async def get_item(key: str):
-    val = await app.state.redis.get(key)
-    if val is not None:
-        return {"data": {"value": val}}
-    row = await db.fetch_one(kv.select().where(kv.c.key == key))
-    if not row:
-        raise HTTPException(status_code=404, detail="Chave não encontrada")
-    await app.state.redis.set(key, row["value"])
-    return {"data": {"value": row["value"]}}
-
-@app.delete("/kv", response_model=DeleteResponse, tags=["kv"])
-async def delete_item(key: str):
-    deleted_redis = await app.state.redis.delete(key)
-    result = await db.execute(kv.delete().where(kv.c.key == key))
-    deleted_sql = bool(result)
-    return {
-        "key": key,
-        "deleted": bool(deleted_redis or deleted_sql)
-    }
