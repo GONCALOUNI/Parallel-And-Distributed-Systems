@@ -31,29 +31,29 @@ services:
       timeout: 3s
       retries: 5
 
-  backend:
+  backend1: &backend1
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     ports:
       - "8002:8000"
     environment:
       DATABASE_URL: postgresql://user:password@postgres:5432/appdb
-      REDIS_URL: "redis://redis:6379/0"
+      REDIS_URL: redis://redis:6379/0
     networks:
-      appnet:
-        aliases:
-          - api
+      - appnet
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      test: ["CMD-SHELL","curl ‑f http://localhost:8000/health || exit 1"]
       interval: 5s
       timeout: 2s
       retries: 5
+    restart: unless-stopped
+
+  backend2:
+    <<: *backend1
+    ports:
+      - "8003:8000"
+    restart: on-failure
 
   redis_exporter:
     image: oliver006/redis_exporter:v1.45.0
@@ -78,7 +78,8 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8002
     depends_on:
-      - backend
+      - backend1
+      - backend2
     user: node
 
   nginx:
@@ -88,15 +89,16 @@ services:
     ports:
       - "8082:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend1
+      - backend2
+    restart: unless-stopped
+    networks:
+      - appnet
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost/stub_status"]
       interval: 10s
       timeout: 5s
       retries: 3
-    networks:
-      - appnet
 
   nginx_exporter:
     image: nginx/nginx-prometheus-exporter:0.10.0
@@ -118,7 +120,6 @@ services:
     ports:
       - "9092:9090"
     depends_on:
-      - backend
       - nginx_exporter
     healthcheck:
       disable: true
@@ -143,7 +144,7 @@ services:
     environment:
       BASE_URL: http://api:8000
     depends_on:
-      backend:
+      backend1:
         condition: service_healthy
     networks:
       - appnet

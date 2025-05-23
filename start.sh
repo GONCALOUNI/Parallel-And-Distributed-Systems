@@ -2,6 +2,8 @@
 set -euo pipefail
 set -x
 
+docker compose down --remove-orphans --volumes || true
+
 if ! docker info > /dev/null 2>&1; then
   echo "→ Docker daemon not running. Starting it now…"
   if command -v systemctl > /dev/null; then
