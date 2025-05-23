@@ -1,5 +1,5 @@
 services:
-  db:
+  postgres:
     image: postgres:15
     environment:
       POSTGRES_USER: user
@@ -18,18 +18,23 @@ services:
       - "6379:6379"
     networks:
       - appnet
+    healthcheck:
+      test: ["CMD", "redis-cli","ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
-  api:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      - postgres
       - redis
     environment:
-      DATABASE_URL: postgresql://user:password@db:5432/appdb
+      DATABASE_URL: postgresql://user:password@postgres:5432/appdb
       REDIS_URL: "redis://redis:6379/0"
     networks:
       - appnet
@@ -51,7 +56,7 @@ services:
     environment:
       - VITE_API_URL=http://api:8000
     depends_on:
-      - api
+      - backend
     user: node
 
   nginx:
@@ -61,7 +66,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      api:
+      backend:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
@@ -73,11 +78,14 @@ services:
 
   redis_exporter:
     image: oliver006/redis_exporter:v1.45.0
-    command: --redis.addr=redis:6379
+    command: ["redis_exporter", "--redis.addr", "redis://redis:6379"]
     ports:
       - "9121:9121"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    networks:
+      - appnet
 
   nginx_exporter:
     image: nginx/nginx-prometheus-exporter:0.10.0
@@ -102,7 +110,7 @@ services:
     ports:
       - "9090:9090"
     depends_on:
-      - api
+      - backend
       - nginx_exporter
 
   grafana:
@@ -123,8 +131,24 @@ services:
     environment:
       BASE_URL: http://api:8000
     depends_on:
-      api:
+      backend:
         condition: service_healthy
+    networks:
+      - appnet
+    profiles: ["load"]
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL:  admin@localhost.localdomain
+      PGADMIN_DEFAULT_PASSWORD: secret
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./backend/pgadmin-config/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      - postgres
     networks:
       - appnet
 
@@ -133,3 +157,4 @@ networks:
 
 volumes:
   postgres_data:
+  pgadmin_data:
